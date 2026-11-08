@@ -787,8 +787,12 @@ func DeleteFileF(_ context.Context, logger *zap.Logger, path, name string, forma
 	filePath := filepath.Join(path, name+"."+format.FileExtension())
 	err := os.Remove(filePath)
 	if err != nil {
-		utils.LogError(logger, err, "failed to delete the file", zap.String("file", filePath))
-		return fmt.Errorf("failed to delete the file: %v", err)
+		// A file that is not there is the caller's to judge (a delete may
+		// count it as done): it says so through fs.ErrNotExist, not an ERROR.
+		if !errors.Is(err, fs.ErrNotExist) {
+			utils.LogError(logger, err, "failed to delete the file", zap.String("file", filePath))
+		}
+		return fmt.Errorf("failed to delete the file: %w", err)
 	}
 	return nil
 }
